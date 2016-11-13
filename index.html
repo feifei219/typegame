@@ -1,0 +1,295 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html lang="en">
+<head>
+	<meta http-equiv="Content-Type" content="text/html;charset=UTF-8">
+	<title>打字游戏</title>
+	<script src="functions.js"></script>
+	
+	<script>
+    $(function(){
+
+      function Game(main,scorele,stateele,lifeele){
+      	this.main=main;
+      	this.mainWidth=main.offsetWidth;
+      	this.mainHeight=main.offsetHeight;
+      	this.obj={};   //信息对象
+      	this.kaiguan1=true;
+      	this.speed=5;
+      	this.scor=0;
+      	this.scorele=scorele;
+      	this.state=1;
+      	this.stateele=stateele;
+      	this.life=3;
+      	this.lifeele=lifeele;
+      	this.num=3;
+      }
+      Game.prototype={
+      	//开始游戏
+      	start:function(){
+      		if(this.kaiguan1){
+      			this.obj={};
+      			this.kaiguan1=false;
+	      		for (var i = 0; i <this.num; i++) {
+	      			newgame._createLetter();
+	      		}
+	      		this._keydown();
+      			this._move();
+      	    }
+      	},
+      	//暂停
+      	stop:function(){
+      		clearInterval(this.st);
+      		document.onkeydown=null;
+      	},
+      	//创建
+		_createLetter:function(){
+		 	var newletter=document.createElement("div");
+		 	//随机位置
+		 	do{
+		 		var randomLeft=Math.random()*(this.mainWidth-80);
+		 	}
+		 	while(this._checkLeft(randomLeft))
+
+		 	var randomTop=Math.random()*-200;
+		 	newletter.style.cssText="width:80px;height:80px;position:absolute;left:"+randomLeft+"px;top:"+randomTop+"px";
+		 	
+		 	//随机字母
+			do{
+			 	var randomnum=Math.floor(Math.random()*26+65)
+			 	var character=String.fromCharCode(randomnum);
+			}
+			while(this.obj[character])
+           
+			newletter.innerHTML="<img width='80' height='80' src='img/"+character+".png'>"
+		 	this.main.appendChild(newletter);
+ 			this.obj[character]={left:randomLeft,top:randomTop,el:newletter};
+		},
+		//随机掉落字母
+		_move:function(){
+			var that=this;
+			this._keydown();
+		 	this.st=setInterval(drop,60)
+		 	function  drop(){
+		 		for(var i in that.obj){
+		 			var oldtop=that.obj[i].top;
+			 		var newtop=oldtop+that.speed;
+			 		that.obj[i].top=newtop;
+			 		that.obj[i].el.style.top=newtop+"px";
+			 		
+			 		//生命值
+			 		if(newtop>that.mainHeight){
+			 			that.life--;
+			 			that.lifeele.innerHTML=that.life;
+			 			that.main.removeChild(that.obj[i].el)
+						delete that.obj[i];
+						that._createLetter();
+						if(that.life==0){
+							that._end();
+						}
+			 		}
+		 		}
+		 	}
+		},
+		//判断边框重叠
+		_checkLeft:function(newleft){
+			// {A:{left:50,top:-30,el:div},B:{}}
+		 	for(var i in  this.obj){
+		 		var oldleft=this.obj[i].left;
+		 		if(newleft>(oldleft-80)&&newleft<(oldleft+80)){    //重叠
+		 			return true;
+		 		}	
+		 	}
+		 	return false;
+		},
+		//下一关
+		_pass:function(){
+			this.state++;
+			alert("恭喜过关 ,进入第"+this.state+"关")
+			this.stateele.innerHTML=this.state;
+			this.main.innerHTML="";
+			this.obj={}
+			if(this.state<=3){
+				this.num++;
+			}else{
+				this.speed+=2;
+			}
+			for (var i = 0; i < this.num; i++) {
+				this._createLetter();
+			}
+		},
+		//游戏中
+		_keydown:function(){
+			var that=this;
+			document.onkeydown=function(e){
+				var ev=e||window.event;
+				var kc=ev.keyCode;
+				var newletter=String.fromCharCode(kc);
+				if(that.obj[newletter]){ 
+					that.main.removeChild(that.obj[newletter].el)
+					delete that.obj[newletter];
+					that._createLetter();
+					//得分
+					that.scor++;
+					that.scorele.innerHTML=that.scor;
+					//关卡
+					if(that.scor%10==0){
+						that._pass();
+					}
+				}
+			}
+		},
+		//游戏结束
+		_end:function(){
+			this.main.innerHTML="";
+			this.stop();
+			this.kaiguan1=true;
+			alert("游戏结束");
+
+			//恢复默认
+			this.speed=5;
+	      	this.scor=0;
+	      	this.scorele.innerHTML=this.scor;
+	      	this.state=1;
+	      	this.stateele.innerHTML=this.state;
+	      	this.life=3;
+	      	this.lifeele.innerHTML=this.life;
+	      	this.num=3;
+		} 		
+	  }
+	  var main=$(".main")[0];
+	  var startbtn=$(".start")[0];
+	  var scor=$(".scor")[0];
+	  var state=$(".state")[0];
+	  var life=$(".life")[0];
+	  var stopbtn=$(".stop")[0];
+	  var endbtn=$(".end")[0];
+	  
+	  var newgame=new  Game(main,scor,state,life)
+	  
+	  startbtn.onclick=function(){
+	  	newgame.start()
+	  }
+	  var flag=true;
+	  endbtn.onclick=function(){
+	  	if(flag){
+	  		newgame._end();
+	  	}
+	  	
+	  }
+	  stopbtn.onclick=function(){
+	  	if(flag){
+	  		flag=false;
+	  		newgame.stop();
+	  	    this.innerHTML="继续";
+	  	}else{
+	  		flag=true;
+	  		newgame._move();
+	  		this.innerHTML="暂停";
+	  	}
+	  }
+
+
+
+
+
+    })
+
+
+	</script>
+	<style>
+     .scene{
+     	width:1000px;
+     	height:100%;
+     	background: #81c3c4;
+     	position: absolute;
+     	left:50%;top:0;
+     	margin-left:-500px;
+     }
+     .main{
+     	width:800px;
+     	height:100%;
+     	float: left;
+     	background-image:url(img/main.jpg);
+     	background-size: 800px 100%;
+     	/*border:5px dashed #AD9F32;*/
+     	/*box-sizing:border-box;*/
+     	/*盒子的边框自适应，不会加大*/
+     	overflow-x: hidden;
+     }
+     .control{
+     	width:200px;
+     	height:100%;
+     	background-image:url(img/1.jpg);
+     	float: left;
+     }
+     .show{
+		width:150px;
+     	height:40px;
+     	margin:15px auto 15px;
+     	background: #fff;
+     	border-radius: 30px;
+     	border:2px solid #A49725;
+     	text-align: center;
+     	line-height: 40px;
+     	color:#816B28;
+     	font-size:22px;
+     	font-family:"方正胖娃_GBK";
+     	font-style: italic;
+     	background:url(img/bg.jpg) center;
+     	background-size:150px 40px; 
+     }
+     .btn{
+		width:150px;
+     	height:40px;
+     	margin:30px auto;
+     	border-radius: 30px;
+     	border:2px solid #A49725;
+     	text-align: center;
+     	line-height: 40px;
+     	color:#816B28;
+     	font-size: 22px;
+     	font-family:"方正胖娃_GBK";
+     	cursor: pointer;
+     	background:url(img/bg.jpg) center;
+     	background-size:150px 40px;
+     }
+     .name{
+     	width:100%;
+     	text-align: center;
+     	line-height: 30px;
+     	color:#AB6E27;
+     	font-size: 24px;
+     	font-family:"方正胖娃_GBK";
+
+     }
+     /*.start{
+     	background:url(img/play.jpg) center;
+     	background-size:150px 40px;
+     }*/
+     /*.stop{
+     	background:url(img/bg.jpg) center;
+     	background-size:150px 40px;
+     }*/
+     /*.end{
+     	background:url(img/stop.jpg) center;
+     	background-size:150px 40px;
+     }*/
+	</style>
+</head>
+<body>
+	<div class="scene">
+		<div class="main"></div>
+		<div class="control">
+			<div class="name">得分</div>
+			<div class="scor   show">0</div>
+			<div class="name">关卡</div>
+			<div class="state  show">1</div>
+			<div class="name">生命</div>
+			<div class="life   show">3</div>
+			<div class="start btn">开始</div>
+			<div class="stop  btn">暂停</div>
+			<div class="end  btn">结束</div>
+		</div>
+	</div>
+</body>
+</html>
